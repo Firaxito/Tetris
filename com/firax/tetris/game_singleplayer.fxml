@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.net.URL?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane fx:id="application" prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.firax.tetris.Controller">
+
+    <stylesheets>
+        <URL value="@res/style.css" />
+    </stylesheets>
+
+    <Canvas id="backgroundCanvas" height="600.0" width="300.0" />
+    <Canvas id="gameCanvas" height="600.0" width="300.0" />
+    <Canvas id="nextBrickCanvas" height="75.0" layoutX="335.0" layoutY="100.0" width="75.0" />
+    <Canvas id="holdBrickCanvas" height="75.0" layoutX="335.0" layoutY="400.0" width="75.0" />
+    <Label alignment="CENTER" layoutX="300.0" layoutY="65.0" prefWidth="150.0" text="NEXT BRICK" textFill="WHITE">
+        <font>
+            <Font name="Verdana" size="18.0" />
+        </font>
+    </Label>
+    <Label alignment="CENTER" layoutX="300.0" layoutY="365.0" prefWidth="150.0" text="HOLD" textFill="WHITE">
+        <font>
+            <Font name="Verdana" size="18.0" />
+        </font>
+    </Label>
+</AnchorPane>
