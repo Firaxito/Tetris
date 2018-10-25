@@ -1,3 +1,4 @@
 # Tetris
-Don't expect FPS game here
 ![](preview.gif)
+
+Don't expect FPS game here
