@@ -1,4 +1,9 @@
 # Tetris
-![](preview.gif)
+![Game preivew](preview.gif)
 
-Don't expect FPS game here
+# Controls
+Standard **WASD** or **Arrow key** movement\
+**Shift:** Hold Brick\
+**ESC** - Pause game\
+**X:**  Enable/Disable autoplay\
+**Num8/Num2**: Swich between skins\
