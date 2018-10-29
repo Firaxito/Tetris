@@ -5,5 +5,6 @@
 Standard **WASD** or **Arrow key** movement\
 **Shift:** Hold Brick\
 **ESC:** Pause game\
+**R:** Restart game\
 **X:**  Enable/Disable autoplay\
 **Num8/Num2:** Swich between skins
