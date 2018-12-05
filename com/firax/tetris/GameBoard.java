@@ -2,80 +2,109 @@ package com.firax.tetris;
 
 import com.firax.tetris.bricks.Brick;
 import com.firax.tetris.bricks.BrickColor;
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Label;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.util.Duration;
 
 import java.util.List;
 
 
 public class GameBoard {
 
-    public final static int DEFAULT_FALL_SPEED = 200; // DEFAULT SPEED VALUE FOR BRICK
-
+    public final static int DEFAULT_FALL_SPEED = 100; // DEFAULT FALL VALUE FOR BRICK
     private final static int ANIMATION_DURATION = 20; //DEFAULT ANIMATION DURATION
 
     private GameMatrix gameMatrix; //Matrix controller
+    private Timeline mainTimeline; //Here is job done (ticker)
     private AnchorPane root;
     private Label mStatistics;
+
     private BrickBag brickBag; //Random brick generator
     private Skin skin; //Skin for bricks
+
+    //layout values
+    private int sizeX, sizeY;
+    private int paddingX, paddingY;
+
     private int onHoldBrickID; //ID of holding brick
     private int nextBrickID; // ID of next brick
     private int activeBrickID; // ID of active brick
     private int score;
     private int fallSpeed = DEFAULT_FALL_SPEED; //Actual brick fall speed
-    private int counterToMoveDown; //On certain value, block will move down
+    private int counterToMoveDown; //Tick iterations counter... When this == fallSpeed -> Block will move down by 1 -> ( this = 0)
+
     private boolean canHoldBrick;
     private boolean playing;
     private boolean isAnimationPlaying;
-    private boolean isPreviewActive = true; //Showing where will brick fall
-    private boolean isAnimationActive = true; //Enable animations
+    private boolean isPreviewActive = Settings.IS_PREVIEW_ACTIVE; //Showing where will brick fall
+    private boolean isAnimationActive = Settings.IS_ANIMATION_ENABLED; //Enable animations
+    private boolean isMenuOpened = true;
 
-    private Thread mainThread; //Here is job done
+    public GameBoard(AnchorPane root, int blocksWidth, int blocksHeight, int sizeWidth, int sizeHeight, int paddingX, int paddingY) {
 
-    public GameBoard(int width, int height, AnchorPane root) {
-
-        if (height < 8 || width < 8) {
+        if (blocksWidth < 8 || blocksHeight < 8) {
             throw new IllegalArgumentException(
                     "\nBoard has to be at least 8x8");
         }
 
-        gameMatrix = new GameMatrix(width, height);
+        gameMatrix = new GameMatrix(blocksWidth, blocksHeight);
         this.root = root;
         brickBag = new BrickBag();
-        skin = new Skin(Skin.WOOD_SKIN);
+        skin = new Skin(Settings.FAVOURITE_SKIN);
+
+        this.sizeX = sizeWidth;
+        this.sizeY = sizeHeight;
+        this.paddingX = paddingX;
+        this.paddingY = paddingY;
+
         setupLayouts();
-        setupMainThread();
+        setupMainTimeline();
         resetGame();
         reDrawAll();
 
     }
 
+    public GameBoard(AnchorPane root, int blocksWidth, int blocksHeight, int paddingX, int paddingY) {
+        this(root, blocksWidth, blocksHeight, 300, 600, paddingX, paddingY);
+    }
+
+    public GameBoard(AnchorPane root, int blocksWidth, int blocksHeight) {
+        this(root, blocksWidth, blocksHeight, 0, 0);
+    }
+
     public void startGame() {
+        showGame();
         if (gameMatrix.getActiveBrick() == null)
             gameMatrix.addNewBrick(Brick.createBrickByID(activeBrickID));
+
+        reDrawAll();
         playing = true;
         start();
     }
 
     public void pauseGame(boolean value) {
-        playing = value;
-        if (playing) {
-            mainThread.interrupt();
-            start();
+        if (!isMenuOpened) {
+            playing = !value;
+            if (playing) mainTimeline.play();
+            else mainTimeline.pause();
         }
     }
 
+    private void showGame() {
+        isMenuOpened = false;
+    }
+
     private void start() {
-        if(mainThread == null || !mainThread.isAlive()) {
-            setupMainThread();
-            mainThread.start();
-        }
+        mainTimeline.play();
     }
 
     public void resetGame() {
@@ -86,12 +115,13 @@ public class GameBoard {
             canHoldBrick = true;
             onHoldBrickID = -1;
             score = 0;
+            counterToMoveDown = 0;
             Platform.runLater(() -> mStatistics.setText("LINES SENT: " + score));
 
             if (playing) {
                 gameMatrix.addNewBrick(Brick.createBrickByID(activeBrickID));
                 reDrawAll();
-                if (!mainThread.isAlive()) startGame();
+                startGame();
             }
         }
     }
@@ -110,8 +140,8 @@ public class GameBoard {
                 activeBrickID = holdBrickCacheID;
             }
             gameMatrix.replaceBrick(Brick.createBrickByID(activeBrickID));
-            drawBrickOnCanvas(getCanvasByID(Variables.CANVAS_NEXT_BRICK_ID), getNextBrickID());
-            drawBrickOnCanvas(getCanvasByID(Variables.CANVAS_HOLD_BRICK_ID), getOnHoldBrickID());
+            drawBrickOnCanvas(getCanvasByID(Settings.IDs.CANVAS_NEXT_BRICK_ID), getNextBrickID());
+            drawBrickOnCanvas(getCanvasByID(Settings.IDs.CANVAS_HOLD_BRICK_ID), getOnHoldBrickID());
 
         } else {
             //TODO NOTIFY PLAYER
@@ -127,29 +157,29 @@ public class GameBoard {
     }
 
     public void moveBrickLeft() {
-        gameMatrix.moveBrickLeft();
+        if (playing) gameMatrix.moveBrickLeft();
     }
 
     public void moveBrickRight() {
-        gameMatrix.moveBrickRight();
+        if (playing) gameMatrix.moveBrickRight();
     }
 
     public void moveBrickDown() {
-        gameMatrix.moveBrickDown();
+        if (playing) gameMatrix.moveBrickDown();
     }
 
     public void rotateBrick() {
-        gameMatrix.rotateBrick();
+        if (playing) gameMatrix.rotateBrick();
     }
 
-    public void setSkin(int skin){
-        if(!isAnimationPlaying) {
+    public void setSkin(int skin) {
+        if (!isGameEnd()) {
             this.skin.setSkinID(skin);
             reDrawAll();
         }
     }
 
-    public int getActiveSkin(){
+    public int getActiveSkin() {
         return skin.getSelectedSkinID();
     }
 
@@ -157,14 +187,15 @@ public class GameBoard {
         isPreviewActive = value;
     }
 
-    public void setFallSpeed(int fallSpeed){
-        this.fallSpeed = fallSpeed;
+    public void setFallSpeed(int fallSpeed) {
+        if (fallSpeed < 10 && fallSpeed >= 0) this.fallSpeed = 10;
+        else this.fallSpeed = fallSpeed;
     }
 
     private void animateGrayScaleEffect() {
         isAnimationPlaying = true;
 
-        Canvas canvas = getCanvasByID(Variables.GAME_CANVAS_ID);
+        Canvas canvas = getCanvasByID(Settings.IDs.GAME_CANVAS_ID);
         double squareWidth = canvas.getWidth() / gameMatrix.getWidth();
         double squareHeight = canvas.getHeight() / gameMatrix.getHeight();
 
@@ -191,16 +222,66 @@ public class GameBoard {
     }
 
     //Input is list of rows, which will be animated and taken off from matrix
-    private void animateRowsFall(final List<Integer> rows) {
+    private void animateRows(final List<Integer> rows) {
         isAnimationPlaying = true;
 
-        Canvas canvas = getCanvasByID(Variables.GAME_CANVAS_ID);
+        Canvas canvas = getCanvasByID(Settings.IDs.GAME_CANVAS_ID);
         double squareWidth = canvas.getWidth() / gameMatrix.getWidth();
         double squareHeight = canvas.getHeight() / gameMatrix.getHeight();
-        double stepY = squareHeight / ANIMATION_DURATION;
 
-        Thread fallAnimation = new Thread(new Runnable() {
+        animateRowsSide(rows, canvas, squareWidth, squareHeight);
 
+    }
+
+    private void animateRowsSide(final List<Integer> rows, Canvas canvas, double squareWidth, double squareHeight) {
+        Thread rowSideAnimation = new Thread(new Runnable() {
+            int counter = 0;
+            double stepX = (gameMatrix.getWidth() * squareWidth) / ANIMATION_DURATION;
+            double randomStepX = stepX;
+
+            @Override
+            public void run() {
+                //Waiting for main canvas to be redrawn
+                try {
+                    Thread.sleep(5);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    animateRowsFall(rows, canvas, squareWidth, squareHeight);
+                }
+
+                while (counter != ANIMATION_DURATION) {
+                    for (int row : rows) {
+
+                        //Every row will travel to opposite direction
+                        if (row % 2 == 0) randomStepX = -stepX;
+                        else randomStepX = stepX;
+
+                        canvas.getGraphicsContext2D().clearRect(0, row * squareHeight, canvas.getWidth(), squareHeight);
+                        for (int i = 0; i < gameMatrix.getWidth(); i++) {
+                            skin.drawSquareOnCanvas(i, row, squareWidth, squareHeight, getColorByID(gameMatrix.getValue(i, row)), canvas, counter * randomStepX, 0);
+                        }
+                    }
+
+                    if (++counter == ANIMATION_DURATION) {
+                        for (int row : rows) gameMatrix.clearRow(row);
+                        animateRowsFall(rows, canvas, squareWidth, squareHeight);
+                    }
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        animateRowsFall(rows, canvas, squareWidth, squareHeight);
+                    }
+                }
+            }
+        });
+        rowSideAnimation.start();
+    }
+
+    private void animateRowsFall(final List<Integer> rows, Canvas canvas, double squareWidth, double squareHeight) {
+        final Thread fallAnimation = new Thread(new Runnable() {
+
+            double stepY = squareHeight / ANIMATION_DURATION;
             int counter = 0;
             int multiplier = 0;
 
@@ -238,7 +319,6 @@ public class GameBoard {
                             gameMatrix.moveAllDownFromRow(row);
                         }
                         isAnimationPlaying = false;
-                        start();
                     }
                     try {
                         Thread.sleep(10);
@@ -247,48 +327,13 @@ public class GameBoard {
                             gameMatrix.moveAllDownFromRow(row);
                         }
                         isAnimationPlaying = false;
-                        start();
                         e.printStackTrace();
                     }
                 }
             }
         });
 
-        Thread rowSideAnimation = new Thread(new Runnable() {
-            int counter = 0;
-            double stepX = (gameMatrix.getWidth() * squareWidth) / ANIMATION_DURATION;
-            double randomStepX = stepX;
-
-            @Override
-            public void run() {
-                while (counter != ANIMATION_DURATION) {
-                    for (int row : rows) {
-
-                        //Every row will travel to opposite direction
-                        if (row % 2 == 0) randomStepX = -stepX;
-                        else randomStepX = stepX;
-
-                        canvas.getGraphicsContext2D().clearRect(0, row * squareHeight, canvas.getWidth(), squareHeight);
-                        for (int i = 0; i < gameMatrix.getWidth(); i++) {
-                            skin.drawSquareOnCanvas(i, row, squareWidth, squareHeight, getColorByID(gameMatrix.getValue(i, row)), canvas, counter * randomStepX, 0);
-                        }
-                    }
-
-                    if (++counter == ANIMATION_DURATION) {
-                        for (int row : rows) gameMatrix.clearRow(row);
-                        fallAnimation.start();
-                    }
-                    try {
-                        Thread.sleep(10);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                        fallAnimation.start();
-                    }
-                }
-            }
-        });
-
-        rowSideAnimation.start();
+        fallAnimation.start();
     }
 
     private void finishGame() {
@@ -312,59 +357,18 @@ public class GameBoard {
     }
 
     private Color getColorByID(int ID) {
-        switch (ID) {
-            case Brick.I_BRICK_ID:
-                return BrickColor.I_BRICK_COLOR;
-
-            case Brick.J_BRICK_ID:
-                return BrickColor.J_BRICK_COLOR;
-
-            case Brick.L_BRICK_ID:
-                return BrickColor.L_BRICK_COLOR;
-
-            case Brick.T_BRICK_ID:
-                return BrickColor.T_BRICK_COLOR;
-
-            case Brick.O_BRICK_ID:
-                return BrickColor.O_BRICK_COLOR;
-
-            case Brick.S_BRICK_ID:
-                return BrickColor.S_BRICK_COLOR;
-
-            case Brick.Z_BRICK_ID:
-                return BrickColor.Z_BRICK_COLOR;
-
-            case -1:
-                return getColorByID(activeBrickID);
-
-        }
-        return new Color(0, 0, 0, 0);
+        if (ID == -1) return getColorByID(activeBrickID);
+        else return Brick.getColorByID(ID);
     }
 
     private void reDrawAll() {
-        drawBackground(getCanvasByID(Variables.CANVAS_BACKGROUND_ID));
-        drawMatrix(getCanvasByID(Variables.CANVAS_BACKGROUND_ID));
-        drawBrickOnCanvas(getCanvasByID(Variables.CANVAS_NEXT_BRICK_ID), getNextBrickID());
-        drawBrickOnCanvas(getCanvasByID(Variables.CANVAS_HOLD_BRICK_ID), getOnHoldBrickID());
+        drawBackground(getCanvasByID(Settings.IDs.CANVAS_BACKGROUND_ID));
+        drawBrickOnCanvas(getCanvasByID(Settings.IDs.CANVAS_NEXT_BRICK_ID), getNextBrickID());
+        drawBrickOnCanvas(getCanvasByID(Settings.IDs.CANVAS_HOLD_BRICK_ID), getOnHoldBrickID());
     }
 
+    //Redrawing game background
     private void drawBackground(Canvas canvas) {
-        double squareWidth = canvas.getWidth() / gameMatrix.getWidth();
-        double squareHeight = canvas.getHeight() / gameMatrix.getHeight();
-
-        canvas.getGraphicsContext2D().setFill(new Color(0.2, 0.2, 0.2, 1));
-        canvas.getGraphicsContext2D().setFill(new Color(0.35, 0.35, 0.35, 1));
-
-        for (int i = 0; i < gameMatrix.getHeight(); i++) {
-            for (int j = 0; j < gameMatrix.getWidth(); j++) {
-                if (((i % 2) + j) % 2 == 0) canvas.getGraphicsContext2D().setFill(new Color(0.2, 0.2, 0.2, 1));
-                else canvas.getGraphicsContext2D().setFill(new Color(0.15, 0.15, 0.15, 1));
-                canvas.getGraphicsContext2D().fillRect(squareWidth * j, squareHeight * i, squareWidth, squareHeight);
-            }
-        }
-    }
-
-    private void drawMatrix(Canvas canvas) {
         double squareWidth = canvas.getWidth() / gameMatrix.getWidth();
         double squareHeight = canvas.getHeight() / gameMatrix.getHeight();
 
@@ -372,11 +376,16 @@ public class GameBoard {
 
         for (int i = 0; i < gameMatrix.getHeight(); i++) {
             for (int j = 0; j < gameMatrix.getWidth(); j++) {
-                canvas.getGraphicsContext2D().strokeRect(squareWidth * j, squareHeight * i, squareWidth, squareHeight);
+                if (((i % 2) + j) % 2 == 0) canvas.getGraphicsContext2D().setFill(new Color(0.2, 0.2, 0.2, 1));
+                else canvas.getGraphicsContext2D().setFill(new Color(0.15, 0.15, 0.15, 1));
+
+                canvas.getGraphicsContext2D().fillRect(squareWidth * j, squareHeight * i, squareWidth, squareHeight); //Filling
+                canvas.getGraphicsContext2D().strokeRect(squareWidth * j, squareHeight * i, squareWidth, squareHeight); //Stroking
             }
         }
     }
 
+    //Redrawing all game blocks
     private void drawBoard(Canvas canvas) {
         canvas.getGraphicsContext2D().clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         double squareWidth = canvas.getWidth() / gameMatrix.getWidth();
@@ -390,6 +399,7 @@ public class GameBoard {
             }
         }
 
+        //Drawing preview blocks
         if (isPreviewActive) {
             List<Point> position = gameMatrix.getFinalPosition();
 
@@ -403,56 +413,151 @@ public class GameBoard {
     }
 
     private void drawBrickOnCanvas(Canvas canvas, int brickID) {
-        canvas.getGraphicsContext2D().clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-        int[][] brickMatrix;
-        if (brickID == -1) return;
-        else brickMatrix = Brick.createBrickByID(brickID).getMatrixShapes().get(0);
+        Brick.drawBrickOnCanvas(canvas, brickID, skin);
+    }
 
-        int width = 0;
-        int height = 0;
-        int widthStart = -1;
-        int heightStart = -1;
+    private void clearBoard() {
+        gameMatrix.resetMatrix();
+    }
 
-        //Realizing width
+    private Canvas getCanvasByID(String ID) {
+        //This is search for layout file canvas
+        if (root.lookup(ID) != null) return ((Canvas) root.lookup(ID));
+
+        //This is search for programmatically created canvas
+        for (int i = 0; i < root.getChildren().size(); i++) {
+            if (root.getChildren().get(i).getId() != null && root.getChildren().get(i).getId().equals(ID))
+                return ((Canvas) root.getChildren().get(i));
+        }
+
+        return new Canvas();
+    }
+
+    private void setupLayouts() {
+        setupCanvases();
+        mStatistics = new Label("LINES SENT:  0");
+        mStatistics.setFont(new Font("Verdana", 12));
+        mStatistics.setPrefWidth(150);
+        mStatistics.setAlignment(Pos.CENTER);
+        mStatistics.setTextFill(Color.WHITE);
+        mStatistics.setLayoutY(575 + paddingY);
+        mStatistics.setLayoutX(300 + paddingX);
+        root.getChildren().add(mStatistics);
+    }
+
+    //This method is protection from corrupted or non-existent layout file
+    //If any canvas will be missing on layout, this method will automatically
+    //create canvas and set default values to it
+    private void setupCanvases() {
+        Canvas backgroundCanvas, gameCanvas;
+        Canvas nextBrickCanvas, holdBrickCanvas;
+
+        if (getCanvasByID(Settings.IDs.CANVAS_BACKGROUND_ID).getId() == null) {
+            backgroundCanvas = new Canvas(sizeX, sizeY);
+            backgroundCanvas.setId(Settings.IDs.CANVAS_BACKGROUND_ID);
+        } else backgroundCanvas = getCanvasByID(Settings.IDs.CANVAS_BACKGROUND_ID);
+
+        if (getCanvasByID(Settings.IDs.GAME_CANVAS_ID).getId() == null) {
+            gameCanvas = new Canvas(sizeX, sizeY);
+            gameCanvas.setId(Settings.IDs.GAME_CANVAS_ID);
+        } else gameCanvas = getCanvasByID(Settings.IDs.GAME_CANVAS_ID);
+
+        if (getCanvasByID(Settings.IDs.CANVAS_NEXT_BRICK_ID).getId() == null) {
+            nextBrickCanvas = new Canvas(sizeX / 4, sizeX / 4);
+            nextBrickCanvas.setLayoutX(sizeX + 35);
+            nextBrickCanvas.setLayoutY(sizeY / 6);
+            nextBrickCanvas.setId(Settings.IDs.CANVAS_NEXT_BRICK_ID);
+        } else nextBrickCanvas = getCanvasByID(Settings.IDs.CANVAS_NEXT_BRICK_ID);
+
+        if (getCanvasByID(Settings.IDs.CANVAS_HOLD_BRICK_ID).getId() == null) {
+            holdBrickCanvas = new Canvas(sizeX / 4, sizeX / 4);
+            holdBrickCanvas.setLayoutX(sizeX + 35);
+            holdBrickCanvas.setLayoutY((sizeY / 6) * 4);
+            holdBrickCanvas.setId(Settings.IDs.CANVAS_HOLD_BRICK_ID);
+        } else holdBrickCanvas = getCanvasByID(Settings.IDs.CANVAS_HOLD_BRICK_ID);
+
+        root.getChildren().removeAll(backgroundCanvas, gameCanvas, nextBrickCanvas, holdBrickCanvas);
+        root.getChildren().add(0, backgroundCanvas);
+        root.getChildren().add(1, gameCanvas);
+        root.getChildren().add(2, nextBrickCanvas);
+        root.getChildren().add(3, holdBrickCanvas);
+
         for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                if (brickMatrix[j][i] != 0) {
-                    if (widthStart < 0) widthStart = i;
-                    width++;
-                    break;
+            root.getChildren().get(i).setLayoutX(root.getChildren().get(i).getLayoutX() + paddingX);
+            root.getChildren().get(i).setLayoutY(root.getChildren().get(i).getLayoutY() + paddingY);
+        }
+
+    }
+
+    private void ticker() {
+        if (!isAnimationPlaying) {
+            if (gameMatrix.isReadyForNewBrick()) {
+                if (isRowFull()) {
+                    score += gameMatrix.getFullRows().size();
+                    Platform.runLater(() -> mStatistics.setText("LINES SENT: " + score));
+                    if (isAnimationActive) {
+                        //RUNNING EXPENSIVE DRAWING PROCESS
+                        Platform.runLater(() -> drawBoard(getCanvasByID(Settings.IDs.GAME_CANVAS_ID)));
+                        animateRows(gameMatrix.getFullRows());
+                    } else {
+                        for (int row : gameMatrix.getFullRows()) {
+                            gameMatrix.clearRow(row);
+                            gameMatrix.moveAllDownFromRow(row);
+                        }
+                    }
+                    return;
+                }
+                addNewBrick();
+                drawBrickOnCanvas(getCanvasByID(Settings.IDs.CANVAS_NEXT_BRICK_ID), getNextBrickID());
+            }
+            //RUNNING EXPENSIVE DRAWING PROCESS
+            Platform.runLater(() -> drawBoard(getCanvasByID(Settings.IDs.GAME_CANVAS_ID)));
+
+            counterToMoveDown++;
+            if (playing) {
+                if (counterToMoveDown > fallSpeed && fallSpeed > 0) {
+                    counterToMoveDown = 0;
+                    gameMatrix.moveBrickDown();
                 }
             }
         }
-        //Realizing height
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                if (brickMatrix[i][j] != 0) {
-                    if (heightStart < 0) heightStart = i;
-                    height++;
-                    break;
-                }
+    }
+
+    private void setupMainTimeline() {
+
+        mainTimeline = new Timeline();
+        mainTimeline.setCycleCount(Animation.INDEFINITE);
+        KeyFrame keyframe = new KeyFrame(Duration.millis(10), (ActionEvent event) -> { // 100fps
+
+            if (playing && !gameMatrix.isMatrixFull()) ticker();
+
+            if (gameMatrix.isMatrixFull()) {
+                finishGame();
+                mainTimeline.stop();
             }
-        }
 
-        int higher = height > width ? height : width;
-        double offset;
-        if (higher == 4) offset = 0;
-        else if (higher == 3) offset = canvas.getWidth()/16;
-        else if (higher == 2) offset = canvas.getWidth()/4.5;
-        else offset = 0;
+        });
+        mainTimeline.getKeyFrames().add(keyframe);
+    }
 
-        double squareWidth = canvas.getWidth() / higher - offset;
-        double squareHeight = canvas.getHeight() / higher - offset;
+    public boolean isGameEnd() {
+        return gameMatrix.isMatrixFull();
+    }
 
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
-                if (brickMatrix[i + heightStart][j + widthStart] != 0) {
-                    skin.drawSquareOnCanvas(j , i, squareWidth, squareHeight, getColorByID(brickMatrix[i + heightStart][j + widthStart]), canvas, offset, 0);
-                }
+    public boolean isAnimationPlaying() {
+        return isAnimationPlaying;
+    }
 
-            }
-        }
+    public void setAnimations(boolean value) {
+        isAnimationActive = value;
+    }
 
+    public int getBlocksWidth() {
+        return gameMatrix.getWidth();
+    }
+
+    public int getBlocksHeight() {
+        return gameMatrix.getHeight();
     }
 
     public int[][] getGameMatrixCopy() {
@@ -463,10 +568,6 @@ public class GameBoard {
             }
         }
         return matrixCopy;
-    }
-
-    private void clearBoard() {
-        gameMatrix.resetMatrix();
     }
 
     public int getActiveBrickID() {
@@ -481,136 +582,45 @@ public class GameBoard {
         return nextBrickID;
     }
 
-    public boolean isGamePaused(){
-        return playing;
+    public boolean isGamePaused() {
+        return !playing;
     }
 
-    private Canvas getCanvasByID(String ID) {
-        //This is search for fxml file canvas
-        if (root.lookup(ID) != null) return ((Canvas) root.lookup(ID));
-
-        //This is search for programmatically created canvas
-        for (int i = 0; i < root.getChildren().size(); i++) {
-            if (root.getChildren().get(i).getId() != null && root.getChildren().get(i).getId().equals(ID))
-                return ((Canvas) root.getChildren().get(i));
-        }
-
-        return new Canvas();
+    public int getWidth() {
+        return sizeX;
     }
 
-
-    private void setupLayouts(){
-        setupCanvases();
-        mStatistics = new Label("LINES SENT:  0");
-        mStatistics.setFont(new Font("Verdana", 12));
-        mStatistics.setPrefWidth(150);
-        mStatistics.setAlignment(Pos.CENTER);
-        mStatistics.setTextFill(Color.WHITE);
-        mStatistics.setLayoutY(575);
-        mStatistics.setLayoutX(300);
-        root.getChildren().add(mStatistics);
+    public int getHeight() {
+        return sizeY;
     }
 
-    //This method is protection from interrupted or non-existent fxml file
-    //If any canvas will be missing on fxml, this method will automatically
-    //create canvas and set default values to it
-    private void setupCanvases() {
-        Canvas backgroundCanvas, gameCanvas, gridCanvas;
-        Canvas nextBrickCanvas, holdBrickCanvas;
+    public void resizeBoard(int width, int height) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                boolean finished = false;
 
-        if (getCanvasByID(Variables.CANVAS_BACKGROUND_ID).getId() == null) {
-            backgroundCanvas = new Canvas(300, 600);
-            backgroundCanvas.setId(Variables.CANVAS_BACKGROUND_ID);
-        } else backgroundCanvas = getCanvasByID(Variables.CANVAS_BACKGROUND_ID);
-
-        if (getCanvasByID(Variables.GAME_CANVAS_ID).getId() == null) {
-            gameCanvas = new Canvas(300, 600);
-            gameCanvas.setId(Variables.GAME_CANVAS_ID);
-        } else gameCanvas = getCanvasByID(Variables.GAME_CANVAS_ID);
-
-        if (getCanvasByID(Variables.CANVAS_NEXT_BRICK_ID).getId() == null) {
-            nextBrickCanvas = new Canvas(75, 75);
-            nextBrickCanvas.setLayoutX(335);
-            nextBrickCanvas.setLayoutY(100);
-            nextBrickCanvas.setId(Variables.CANVAS_NEXT_BRICK_ID);
-        } else nextBrickCanvas = getCanvasByID(Variables.CANVAS_NEXT_BRICK_ID);
-
-        if (getCanvasByID(Variables.CANVAS_HOLD_BRICK_ID).getId() == null) {
-            holdBrickCanvas = new Canvas(75, 75);
-            holdBrickCanvas.setLayoutX(335);
-            holdBrickCanvas.setLayoutY(400);
-            holdBrickCanvas.setId(Variables.CANVAS_HOLD_BRICK_ID);
-        } else holdBrickCanvas = getCanvasByID(Variables.CANVAS_HOLD_BRICK_ID);
-
-        root.getChildren().removeAll(backgroundCanvas, gameCanvas, nextBrickCanvas, holdBrickCanvas);
-        root.getChildren().add(0, backgroundCanvas);
-        root.getChildren().add(1, gameCanvas);
-        root.getChildren().add(2, nextBrickCanvas);
-        root.getChildren().add(3, holdBrickCanvas);
-
-    }
-
-    private void ticker(){
-        if (!isAnimationPlaying) {
-            if (gameMatrix.isReadyForNewBrick()) {
-                if (isRowFull()) {
-                    score += gameMatrix.getFullRows().size();
-                    Platform.runLater(() -> mStatistics.setText("LINES SENT: " + score));
-                    if (isAnimationActive) {
-                        animateRowsFall(gameMatrix.getFullRows());
-                    } else {
-                        for (int row : gameMatrix.getFullRows()) {
-                            gameMatrix.clearRow(row);
-                            gameMatrix.moveAllDownFromRow(row);
+                try {
+                    //Waiting until animation is finished
+                    while (!finished) {
+                        if (!isAnimationPlaying) {
+                            //Changing board size
+                            mainTimeline.pause();
+                            Thread.sleep(10);
+                            gameMatrix = new GameMatrix(width, height);
+                            resetGame();
+                            reDrawAll();
+                            mainTimeline.play();
+                            finished = true;
+                        } else {
+                            Thread.sleep(10);
                         }
                     }
-                    return;
-                }
-                addNewBrick();
-                drawBrickOnCanvas(getCanvasByID(Variables.CANVAS_NEXT_BRICK_ID), getNextBrickID());
-            }
-            //RUNNING EXPENSIVE DRAWING PROCESS
-            Platform.runLater(new Runnable() {
-                @Override
-                public void run() {
-                    drawBoard(getCanvasByID(Variables.GAME_CANVAS_ID));
-                }
-            });
-            counterToMoveDown++;
-            if (playing) {
-                if (counterToMoveDown > fallSpeed && fallSpeed > 0) {
-                    counterToMoveDown = 0;
-                    gameMatrix.moveBrickDown();
-                }
-            }
-        }
-    }
-
-    private void setupMainThread() {
-        mainThread = new Thread(() -> {
-            while (playing && !gameMatrix.isMatrixFull()) {
-                try {
-                    Thread.sleep(5);
-                    ticker();
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
-            if (gameMatrix.isMatrixFull())
-                finishGame();
-        });
-    }
-
-    public boolean isGameEnd() {
-        return gameMatrix.isMatrixFull();
-    }
-
-    public boolean isAnimationPlaying(){
-        return isAnimationPlaying;
-    }
-
-    public void setAnimations(boolean value) {
-        isAnimationActive = value;
+        }).start();
     }
 
     @Override

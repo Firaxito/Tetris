@@ -2,6 +2,7 @@ package com.firax.tetris.ai;
 
 import com.firax.tetris.GameBoard;
 import com.firax.tetris.Point;
+import com.firax.tetris.Settings;
 import com.firax.tetris.bricks.Brick;
 
 import java.util.ArrayList;
@@ -9,10 +10,11 @@ import java.util.List;
 
 public class AI {
 
+
     private final static int BRICK_CONSTANT = 10000; //BRICK VALUE WHEN ADDED INTO MATRIX
-    private final static int ROTATION_DELAY = 20;
-    private final static int MOVE_DELAY = 20;
-    private final static double DELAY_SCALE = 0.25;
+    private final static int ROTATION_DELAY = 25; //DELAY FOR SINGLE ROTATION (ms)
+    private final static int MOVE_DELAY = 25; //DELAY FOR SINGLE LEFT/RIGHT MOVE (ms)
+    private double DELAY_SCALE = 0.4; //SCALE FOR DELAYS ABOVE (Becomes unstable under .25)
 
     private GameBoard game;
     private Thread mainThread;
@@ -22,32 +24,41 @@ public class AI {
 
     private boolean playing;
 
-    public AI(GameBoard game, int width, int height) {
+    public AI(GameBoard game) {
         this.game = game;
-        this.width = width;
-        this.height = height;
+        this.width = game.getBlocksWidth();
+        this.height = game.getBlocksHeight();
         game.resetGame();
         setupThread();
     }
 
     public void play() {
+      play(false, false, -1);
+    }
+
+    public void play(boolean animations, boolean preview, int fallingSpeed){
         playing = true;
+        game.setAnimations(animations); //Disable full row animations
+        game.setFallSpeed(fallingSpeed); //Disable fall speed
+        game.setPreview(preview); //Disable gray brick preview
+
         setupThread();
-        game.setAnimations(false);
-        game.setFallSpeed(-1);
-        game.setPreview(false);
         mainThread.start();
     }
 
     public void pause() {
-        game.setAnimations(true);
+        game.setAnimations(Settings.IS_ANIMATION_ENABLED);
         game.setFallSpeed(GameBoard.DEFAULT_FALL_SPEED);
-        game.setPreview(true);
+        game.setPreview(Settings.IS_PREVIEW_ACTIVE);
         playing = false;
     }
 
     public boolean isPlaying() {
         return playing;
+    }
+
+    public void setSpeedScale(double value){
+        DELAY_SCALE = value;
     }
 
     private int countHolesInColumn(int column, int lowestY, int[][] matrix) {
@@ -136,7 +147,7 @@ public class AI {
         int[] highestBrick = new int[width];
         for (int i = 0; i < width; i++) highestBrick[i] = height;
 
-        //FINDING HIGHEST BRICK IN EACH COLUMN
+        //Finding highest brick in each column
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
                 if (matrix[j][i] > 0) {
@@ -155,20 +166,21 @@ public class AI {
         for (int shapeCounter = 0; shapeCounter < matrixShapes; shapeCounter++) {
             int defaultShape[][] = activeBrick.getMatrixShapes().get(shapeCounter);
 
-            //GET THE SMALLEST POSSIBLE SHAPE
+            //Get the smallest possible shape
             int[][] shape = getSmallerShape(defaultShape);
             int shapeHeight = shape.length;
             int shapeWidth = shape[0].length;
 
 
-            //FOR EACH POSSIBLE X
+            //For each possible X
             for (int i = 0; i <= width - shapeWidth; i++) {
 
-                //FOR EACH IMPOSSIBLE X
+                //For each impossible X
                 for (int x = width - shapeWidth + 1; x < width; x++) {
-                    values[shapeCounter][x].value = -1000; //IMPOSSIBRU TO DO PLACE IT THERE
+                    values[shapeCounter][x].value = -1000; //IMPOSSIBRU TO PLACE BLOCK HERE
                 }
 
+                //Counting total amount of squares in shape
                 int shapeSquareCount = 0;
                 for (int j = 0; j < shapeHeight; j++) {
                     for (int k = 0; k < shapeWidth; k++) {
@@ -176,11 +188,12 @@ public class AI {
                     }
                 }
 
-                //CHECKING SPACE IN MATRIX
+
                 List<Point> points = new ArrayList<>();
                 boolean isOk = false;
                 int offset = -shapeHeight + 1;
 
+                //Finding highest column for shape
                 int highestPosY = i;
                 for(int y = 0; y < shapeWidth; y++){
                     if(highestBrick[y+i] < highestBrick[highestPosY]) {
@@ -188,6 +201,7 @@ public class AI {
                     }
                 }
 
+                //Finding final block position
                 while (!isOk) {
                     check:
                     for (int j = i; j < i + shapeWidth; j++) {
@@ -206,14 +220,12 @@ public class AI {
                     }
                 }
 
-
-
-                //ADDING SHAPE INTO MATRIX
+                //Adding shape into matrix
                 for (Point point : points) {
                     matrix[point.y][point.x] = BRICK_CONSTANT;
                 }
 
-                //COUNTING HOLES
+                //Counting holes
                 for (int j = i; j < i + shapeWidth; j++) {
                     int lowestY = 0;
                     for (Point point : points) {
@@ -225,12 +237,12 @@ public class AI {
                 for (Point p : points)
                     values[shapeCounter][i].value = getSquareValue(p.y);
 
-                //REMOVING BRICKS FROM MATRIX
+                //Removing brick from matrix
                 for (Point point : points) {
                     matrix[point.y][point.x] = 0;
                 }
 
-                //ADDING INFORMATION OF EACH BLOCK
+                //Adding information of each block
                 for (Point p : points) {
                     ScoreAI partScore = getBlockScore(matrix, p.x, p.y);
                     values[shapeCounter][i].blockTouch += partScore.blockTouch;
@@ -240,7 +252,7 @@ public class AI {
             }
         }
 
-        //FINDING BEST MOVE FROM ALL POSSIBLE MOVES
+        //Finding best move from all possible moves
         ScoreAI bestScore = new ScoreAI();
         for (int i = 0; i < matrixShapes; i++) {
             for (int j = 0; j < width; j++) {
@@ -269,8 +281,8 @@ public class AI {
     private int getMostLeftX() {
         int mostLeft = width - 1;
         int[][] matrix = game.getGameMatrixCopy();
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
+        for (int i = 0; i < game.getBlocksHeight(); i++) {
+            for (int j = 0; j < game.getBlocksWidth(); j++) {
                 if (matrix[i][j] == -1)
                     if (mostLeft > j) mostLeft = j;
             }
@@ -279,6 +291,9 @@ public class AI {
     }
 
     private void tick() throws InterruptedException {
+        this.width = game.getBlocksWidth();
+        this.height = game.getBlocksHeight();
+
         ScoreAI move = calculateBestMove(); //Calculate best move to make
 
         //If move is bad (has low value), hold brick and calculate best move with new one
@@ -286,7 +301,7 @@ public class AI {
             game.holdBrick();
             move = calculateBestMove();
         }
-
+        Thread.sleep((int) (10 * DELAY_SCALE));
         //ROTATING BRICK
         int rotation = 0;
         while (rotation != move.rotation) {
@@ -308,8 +323,9 @@ public class AI {
             xPos++;
             Thread.sleep((int) (MOVE_DELAY * DELAY_SCALE));
         }
-        Thread.sleep((int) (100 * DELAY_SCALE));
+        Thread.sleep((int) (50 * DELAY_SCALE));
         game.makeBrickFall();
+        Thread.sleep((int) (50 * DELAY_SCALE));
     }
 
     private void setupThread() {

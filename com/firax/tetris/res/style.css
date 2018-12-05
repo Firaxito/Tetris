@@ -2,3 +2,28 @@
 .root {
     -fx-background-image: url("background.png");
 }
+
+
+ .button {
+   -fx-translate-y: 0px;
+   -fx-display: inline-block;
+   -fx-font-color: white;
+   -fx-font-size: 13px;
+   -fx-cursor: hand;
+   -fx-text-align: center;
+   -fx-text-decoration: none;
+   -fx-background-radius: 10px;
+   -fx-text-fill: rgb(255, 255, 255);
+   -fx-background-color: #4CAF50;
+ }
+
+ .button:hover {-fx-background-color: #3e8e41}
+
+ .button:pressed {
+   -fx-background-color: #3e8e41;
+   -fx-font-color: black;
+   -fx-background-color: rgb(255, 255, 255);
+   -fx-text-fill: rgb(0, 0, 0);
+   -fx-effect: innershadow( gaussian , rgba(0,0,0,0.5) , 15,0,0,0 );
+   -fx-translate-y: 4px;
+ }

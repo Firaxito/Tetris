@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.layout.AnchorPane?>
+
+
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.text.Font?>
+<?import javafx.scene.control.Separator?>
+<AnchorPane prefHeight="600" prefWidth="450" xmlns="http://javafx.com/javafx/8.0.172-ea">
+
+           <children>
+               <Label alignment="CENTER" layoutY="50.0" minWidth="235.0" text="Player 1" textFill="WHITE">
+                   <font>
+                       <Font name="System Bold" size="26.0" />
+                   </font>
+               </Label>
+               <Label alignment="CENTER" layoutX="235.0" layoutY="50.0" minWidth="235.0" text="Player 2" textFill="WHITE">
+                   <font>
+                       <Font name="System Bold" size="26.0" />
+                   </font>
+               </Label>
+               <Separator layoutX="235.0" layoutY="20.0" orientation="VERTICAL" prefHeight="560.0" />
+               <Label alignment="CENTER" layoutX="235.0" layoutY="140.0" minWidth="235.0" text="Move left - ←" textFill="WHITE">
+                   <font>
+                       <Font size="20.0" />
+                   </font>
+               </Label>
+               <Label alignment="CENTER" layoutX="235.0" layoutY="175.0" minWidth="235.0" text="Move right - →" textFill="WHITE">
+                   <font>
+                       <Font size="20.0" />
+                   </font>
+               </Label>
+               <Label alignment="CENTER" layoutX="235.0" layoutY="210.0" minWidth="235.0" text="Rotate brick - ↑" textFill="WHITE">
+                   <font>
+                       <Font size="20.0" />
+                   </font>
+               </Label>
+               <Label alignment="CENTER" layoutX="235.0" layoutY="245.0" minWidth="235.0" text="Move down - ↓" textFill="WHITE">
+                   <font>
+                       <Font size="20.0" />
+                   </font>
+               </Label>
+               <Label alignment="CENTER" layoutX="235.0" layoutY="280.0" minWidth="235.0" text="Fall instantly - Num 0" textFill="WHITE">
+                   <font>
+                       <Font size="20.0" />
+                   </font>
+               </Label>
+               <Label alignment="CENTER" layoutY="140.0" minWidth="235.0" text="Move left - A" textFill="WHITE">
+                   <font>
+                       <Font size="20.0" />
+                   </font>
+               </Label>
+               <Label alignment="CENTER" layoutY="175.0" minWidth="235.0" text="Move right - D" textFill="WHITE">
+                   <font>
+                       <Font size="20.0" />
+                   </font>
+               </Label>
+               <Label alignment="CENTER" layoutY="210.0" minWidth="235.0" text="Rotate brick - W" textFill="WHITE">
+                   <font>
+                       <Font size="20.0" />
+                   </font>
+               </Label>
+               <Label alignment="CENTER" layoutY="245.0" minWidth="235.0" text="Move down - S" textFill="WHITE">
+                   <font>
+                       <Font size="20.0" />
+                   </font>
+               </Label>
+               <Label alignment="CENTER" layoutY="280.0" minWidth="235.0" text="Fall instantly - Space" textFill="WHITE">
+                   <font>
+                       <Font size="20.0" />
+                   </font>
+               </Label>
+               <Label alignment="CENTER" layoutY="315.0" minWidth="235.0" text="Hold - Left Shift" textFill="WHITE">
+                   <font>
+                       <Font size="20.0" />
+                   </font>
+               </Label>
+               <Label alignment="CENTER" layoutX="235.0" layoutY="315.0" minWidth="235.0" text="Hold - +" textFill="WHITE">
+                   <font>
+                       <Font size="20.0" />
+                   </font>
+               </Label>
+               <Label alignment="CENTER" layoutY="400.0" minWidth="235.0" text="Pause - Esc" textFill="WHITE">
+                   <font>
+                       <Font size="20.0" />
+                   </font>
+               </Label>
+               <Label alignment="CENTER" layoutX="235.0" layoutY="400.0" minWidth="235.0" text="Pause - P" textFill="WHITE">
+                   <font>
+                       <Font size="20.0" />
+                   </font>
+               </Label>
+           </children>
+
+</AnchorPane>

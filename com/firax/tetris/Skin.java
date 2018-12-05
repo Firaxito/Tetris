@@ -1,5 +1,9 @@
 package com.firax.tetris;
 
+import com.firax.tetris.bricks.Brick;
+import com.firax.tetris.bricks.BrickColor;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
@@ -33,7 +37,7 @@ public class Skin {
         return selectedSkinID;
     }
 
-    public void drawSquareOnCanvas(double x, double y, double width, double height, Color brickColor, Canvas canvas, double offsetX, double offsetY) {
+    public synchronized void drawSquareOnCanvas(double x, double y, double width, double height, Color brickColor, Canvas canvas, double offsetX, double offsetY) {
         switch (selectedSkinID){
             case DEFAULT_SKIN:
                 defaultSkin(x, y, width, height, brickColor, canvas, offsetX, offsetY);

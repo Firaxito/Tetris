@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="600.0" prefWidth="450.0" xmlns="http://javafx.com/javafx/8.0.172-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.firax.tetris.controllers.SettingsController">
+   <children>
+      <Label alignment="CENTER" layoutY="25.0" prefWidth="450.0" text="Board size" textFill="WHITE">
+         <font>
+            <Font name="Verdana" size="18.0" />
+         </font></Label>
+      <Label alignment="CENTER" layoutY="50.0" prefWidth="450.0" text="(Recommended 1:2 size ratio)" textFill="WHITE">
+         <font>
+            <Font name="Verdana" size="12.0" />
+         </font>
+      </Label>
+      <Label layoutX="135.0" layoutY="95.0" text="Width:" textFill="WHITE">
+         <font>
+            <Font name="Verdana" size="12.0" />
+         </font></Label>
+      <Label layoutX="260.0" layoutY="92.0" text="(10-75)" textFill="WHITE" />
+      <Label layoutX="135.0" layoutY="135.0" text="Height:" textFill="WHITE">
+         <font>
+            <Font name="Verdana" size="12.0" />
+         </font></Label>
+      <Label layoutX="260.0" layoutY="132.0" text="(20-150)" textFill="WHITE" />
+      <Button fx:id="mSizeConfirm" layoutX="325.0" layoutY="107.0" mnemonicParsing="false" text="Confirm" visible="false" />
+      <TextField fx:id="mWidth" layoutX="185.0" layoutY="90.0" maxWidth="65.0" />
+      <TextField fx:id="mHeight" layoutX="185.0" layoutY="130.0" maxWidth="65.0" />
+      <Label alignment="CENTER" layoutY="200.0" prefWidth="450.0" text="Favourite skin" textFill="WHITE">
+         <font>
+            <Font name="Verdana" size="18.0" />
+         </font></Label>
+      <Button fx:id="mSkinPrevious" layoutX="75.0" layoutY="275.0" mnemonicParsing="false" text="&lt;&lt;" />
+      <Canvas fx:id="mSkinCanvas" height="125.0" layoutX="163.0" layoutY="225.0" width="125.0" />
+      <Button fx:id="mSkinNext" layoutX="345.0" layoutY="275.0" mnemonicParsing="false" text="&gt;&gt;" />
+      <Label alignment="CENTER" layoutY="385.0" prefWidth="450.0" text="Other" textFill="WHITE">
+         <font>
+            <Font name="Verdana" size="18.0" />
+         </font>
+      </Label>
+      <CheckBox fx:id="mFallPreview" layoutX="75.0" layoutY="445.0" mnemonicParsing="false" text="Show fall preview" textFill="WHITE">
+         <font>
+            <Font name="Verdana" size="12.0" />
+         </font></CheckBox>
+      <CheckBox fx:id="mAnimations" layoutX="75.0" layoutY="475.0" mnemonicParsing="false" text="Animations" textFill="WHITE">
+         <font>
+            <Font name="Verdana" size="12.0" />
+         </font>
+      </CheckBox>
+   </children>
+</AnchorPane>

@@ -35,29 +35,28 @@ public class GameMatrix {
     }
 
     public void replaceBrick(Brick newBrick) {
-        changeBrickValue(0);
+        changeActiveBrickValue(0);
         addNewBrick(newBrick);
     }
 
-    public synchronized void moveBrickDown() {
+    public void moveBrickDown() {
         List<Point> points = getActiveBrickPoints();
 
         //Checking if there is space under brick
         for (Point point : points) {
             if (point.y >= matrixHeight - 1 || (matrix[point.y + 1][point.x] != 0 && matrix[point.y + 1][point.x] != -1)) {
-                changeBrickValue(activeBrick.getID());
+                changeActiveBrickValue(activeBrick.getID());
                 activeBrick.setOnGround();
                 return;
             }
         }
+        editMatrix(points, 0);
 
         for (Point point : points) {
-            matrix[point.y][point.x] = 0;
-        }
-        for (Point point : points) {
-            matrix[point.y + 1][point.x] = ACTIVEBRICK;
+            point.y += 1;
         }
 
+        editMatrix(points, ACTIVEBRICK);
     }
 
     public void moveBrickLeft() {
@@ -89,17 +88,15 @@ public class GameMatrix {
     }
 
     public synchronized void moveAllDownFromRow(int row) {
-        for (int i = row - 1; i >= 0; i--) {
-            for (int j = 0; j < matrixWidth; j++) {
-                matrix[i + 1][j] = matrix[i][j];
-            }
-        }
+      editMatrix(null, row);
     }
 
     public void clearRow(int row) {
+        List<Point> points = new ArrayList<>();
         for (int i = 0; i < matrixWidth; i++) {
-            matrix[row][i] = 0;
+            points.add(new Point(i, row));
         }
+        editMatrix(points, 0);
     }
 
     public List<Integer> getFullRows() {
@@ -120,14 +117,16 @@ public class GameMatrix {
 
     private void addBrickToMatrix() {
         if (isSpaceOnTop()) {
+            List<Point> points = new ArrayList<>();
             int xStart = matrixWidth / 2 - 1;
 
             for (int i = 0; i < 2; i++) {
                 for (int j = 0; j < 4; j++) {
                     if (activeBrick.getMatrixShapes().get(0)[i + 1][j] != 0)
-                        matrix[i][j + xStart] = ACTIVEBRICK;
+                        points.add(new Point(j+xStart, i));
                 }
             }
+            editMatrix(points, ACTIVEBRICK);
         } else {
             System.out.println("FULL");
             isMatrixFull = true;
@@ -142,12 +141,31 @@ public class GameMatrix {
         return true;
     }
 
-    private void changeBrickValue(int newBrickValue) {
+    private void changeActiveBrickValue(int newBrickValue) {
+        List<Point> points = new ArrayList<>();
         for (int i = 0; i < matrixHeight; i++) {
             for (int j = 0; j < matrixWidth; j++) {
                 if (matrix[i][j] == ACTIVEBRICK)
-                    matrix[i][j] = newBrickValue;
+                    points.add(new Point(j, i));
             }
+        }
+        editMatrix(points, newBrickValue);
+    }
+
+    //Only this method can touch matrix directly.
+    //It's prevention from conflicting edit
+    private synchronized void editMatrix(List<Point> points, int value){
+        //Special occasion when list is null
+        //Moving matrix down from value (row index)
+        if(points == null){
+            for (int i = value - 1; i >= 0; i--) {
+                for (int j = 0; j < matrixWidth; j++) {
+                    matrix[i + 1][j] = matrix[i][j];
+                }
+            }
+        } else {
+            for (Point point : points)
+                matrix[point.y][point.x] = value;
         }
     }
 
@@ -155,12 +173,13 @@ public class GameMatrix {
         List<Point> points = getActiveBrickPoints();
 
         if (isSpaceOnSide(points, side)) {
+            editMatrix(points, 0);
+
             for (Point point : points) {
-                matrix[point.y][point.x] = 0;
+                point.x += side;
             }
-            for (Point point : points) {
-                matrix[point.y][point.x + side] = ACTIVEBRICK;
-            }
+
+            editMatrix(points, ACTIVEBRICK);
         }
     }
 
@@ -269,11 +288,8 @@ public class GameMatrix {
             }
         } // No collision detected
         activeBrick.setCurrentRotation(newRotation);
-        changeBrickValue(0);
-
-        for (Point point : newPoints) {
-            matrix[point.y][point.x] = ACTIVEBRICK;
-        }
+        changeActiveBrickValue(0);
+        editMatrix(newPoints, ACTIVEBRICK);
 
     }
 

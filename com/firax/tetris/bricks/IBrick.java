@@ -1,8 +1,6 @@
 package com.firax.tetris.bricks;
 ;
 
-import com.firax.tetris.Variables;
-
 import java.util.ArrayList;
 import java.util.List;
 
